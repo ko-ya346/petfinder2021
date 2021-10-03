@@ -58,4 +58,55 @@ class Model(pl.LightningModule):
         return loss, pred, labels
     
     def training_epoch_end(self, outputs):
-        
+        self.__share_epoch_end(outputs, "train")
+
+    def validation_epoch_end(self, outputs):
+        self.__share_epoch_end(outputs, "valid")
+
+    def __share_epoch_end(self, outputs, mode):
+        preds = []
+        labels = []
+        for out in outputs:
+            pred, label = out["pred"], out["labels"]
+            preds.append(pred)
+            labels.append(label)
+        preds = torch.cat(preds)
+        labels = torch.cat(labels)
+        metrics = torch.sqrt(((labels - preds) ** 2).mean())
+        self.log(f"{mode}_loss", metrics)
+
+    def check_gradcam(
+        self, dataloader, target_layer, 
+        target_category, reshape_transform=None):
+        # CNNの判断根拠の可視化手法のひとつ
+        cam = GradCAMPlusPlus(
+                model=self, 
+                target_layer=target_layer,
+                use_cuda=1,
+                reshape_transform=reshape_transform
+            )
+
+        org_images, labels = iter(dataloader).next()
+        cam.bacth_size = len(org_images)
+        images = get_transform(self.cfg.Augmentation["valid"])
+        images = images.to(self.device)
+        logits = self.forward(images).squeeze(1)
+        pred = logits.sigmoid().detach().spu().numpy() * 100
+        labels = labels.cpu().numpy()
+
+        grayscale_cam = cam(
+            input_tensor=images, 
+            target_category=target_category, eigen_smooth=True)
+
+        org_images = org_images.detach().cpu().numpy().transpose(0, 2, 3, 1) / 255.
+        return org_images, grayscale_cam, pred, labels
+
+    def configure_optimizers(self):
+        optimizer = eval(self.cfg.Optimizer.name)(self.parameters(), 
+            **self.cfg.Optimizer.params)
+        scheduler = eval(self.cfg.Scheduler.name)(optimizer, 
+            **self.cfg.Scheduler.params)
+        return [optimizer], [scheduler]
+
+
+
