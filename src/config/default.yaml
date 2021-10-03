@@ -35,14 +35,15 @@ Model:
     output: softmax
 
 Optimizer:
-    optimizer: Adam
-    init_lr: !!python/float 1e-4
-    lr_scheduler:
-        name: CosineAnnealingLR
-        params:
-            T_max: 40
-            eta_min: !!python/float 1e-5
-            last_epoch: -1
+    name: optim.AdamW
+    params: 
+        lr: !!python/float 1e-5 
+
+Scheduler:
+    name: optim.lr_scheduler.CosineAnnealingWarmRestarts
+    params:
+        T_0: 20
+        eta_min: !!python/float 1e-5
 
 loss: nn.BCEWithLogitsLoss
 
