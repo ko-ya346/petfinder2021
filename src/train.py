@@ -11,6 +11,7 @@ def make_parse():
     arg("--config", default=None, type=str, help="config path")
     return parser
 
+
 def main():
     args = make_parse().parse_args()
     conf = read_yaml(fpath=args.config)
@@ -23,7 +24,8 @@ def main():
     # df読み込む
 
     skf = StratifiedKFold(
-        n_splits=conf.dataset.kfold, shuffle=True, random_state=conf.General.seed)
+        n_splits=conf.dataset.kfold, shuffle=True, random_state=conf.General.seed
+    )
 
     for fold, (train_idx, val_idx) in enumerate(skf.split(df["Id"], df["Pawpularity"])):
         train_df = df.loc[train_idx].reset_index(drop=True)
@@ -32,18 +34,23 @@ def main():
         model = Model(conf)
         earlystopping = EarlyStopping(monitor="val_loss")
         lr_monitor = callbacks.LearningRateMonitor()
-        loss_checkpoint = callbacks.ModelCheckpoint(filename="best_loss", monitor="val_loss", 
-            save_top_k=1, mode="min", save_last=False,)
+        loss_checkpoint = callbacks.ModelCheckpoint(
+            filename="best_loss",
+            monitor="val_loss",
+            save_top_k=1,
+            mode="min",
+            save_last=False,
+        )
 
         logger = TensorBoardLogger(conf.Model.name)
-        trainer = pl.Trainer(logger=logger, max_epochs=conf.General.epoch,
+        trainer = pl.Trainer(
+            logger=logger,
+            max_epochs=conf.General.epoch,
             callbacks=[lr_monitor, loss_checkpoint, earlystopping],
-            **conf.General.trainer,)
+            **conf.General.trainer,
+        )
 
         trainer.fit(model, datamodule=datamodule)
-
-        
-        
 
 
 if __name__ == "__main__":

@@ -18,6 +18,7 @@ class PetfinderDataset(Dataset):
             return image, label
         return image
 
+
 class PetfinderDataModule(LightningDataModule):
     def __init__(self, train_df, val_df, conf):
         super().__init__()
@@ -27,9 +28,17 @@ class PetfinderDataModule(LightningDataModule):
 
     def __create_dataset(self, train=True):
         return (
-            PetfinderDataset(self._train_df, self._conf.dataset.img_height, self._conf.dataset.img_width) 
+            PetfinderDataset(
+                self._train_df,
+                self._conf.dataset.img_height,
+                self._conf.dataset.img_width,
+            )
             if train
-            else PetfinderDataset(self._val_df, self._conf.dataset.img_height, self._conf.dataset.img_width) 
+            else PetfinderDataset(
+                self._val_df,
+                self._conf.dataset.img_height,
+                self._conf.dataset.img_width,
+            )
         )
 
     def train_dataloader(self):

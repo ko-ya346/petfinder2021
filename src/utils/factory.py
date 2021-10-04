@@ -1,8 +1,8 @@
-import yaml
 import torchvision.transforms as T
-# import albumentations as alb
-
+import yaml
 from addict import Dict
+
+# import albumentations as alb
 
 
 def get_transform(conf_alb):
@@ -14,7 +14,6 @@ def get_transform(conf_alb):
             return getattr(T, trans.name)(alb_tmp, **trans.params)
         if hasattr(T, trans.name):
             return getattr(T, trans.name)(**trans.params)
-
 
     print(conf_alb)
     if conf_alb is None:
