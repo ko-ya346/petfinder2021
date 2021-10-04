@@ -19,7 +19,7 @@ dataset:
     test_img_dir: ./
     img_height: 256
     img_width: 256
-    kfold: 1
+    kfold: 3
 dataloader:
     train: 
         batch_size: 64
