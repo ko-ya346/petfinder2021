@@ -1,9 +1,8 @@
 General:
     comment: Sample config file
-    workdir: ./
     seed: 20
     epoch: 10
-    debug: False
+    debug: True
     trainer:
         gpus: 1
         accumulate_grad_batches: 1
@@ -13,33 +12,31 @@ General:
         resume_from_checkpoint: None
 
 dataset: 
-    train_df: ./
-    train_img_dir: ./
-    test_df: ./
-    test_img_dir: ./
-    img_height: 256
-    img_width: 256
+    train_df: ./input
+    train_img_dir: ./input/train
+    test_df: ./input
+    test_img_dir: ./input/test
+    img_height: 224 
+    img_width: 224 
     kfold: 3
 dataloader:
     train: 
-        batch_size: 64
+        batch_size: 16
         shuffle: True
         num_workers: 4
         pin_memory: False
         drop_last: True
     valid:
-        batch_size: 64
+        batch_size: 16
         shuffle: False
         num_workers: 4
         pin_memory: False
         drop_last: False
 
 Model:
-    name: resnet34
+    name: swin_tiny_patch4_window7_224
     in_channel: 3
-    out_channel: 5
-    pretrained: True
-    output: softmax
+    out_channel: 1 
 
 Optimizer:
     name: optim.AdamW
@@ -68,17 +65,11 @@ Augmentation:
             brightness: 0.1
             contrast: 0.1
             saturation: 0.1
-        - name: ConvertImageDtype
-          params:
-            dtype: torch.dtype
         - name: Normalize
           params:
             mean: !!python/object/apply:eval ['(0.485, 0.455, 0.406)']
             std: !!python/object/apply:eval ['(0.229, 0.224, 0.225)']
     valid:
-        - name: ConvertImageDtype
-          params:
-            dtype: torch.dtype
         - name: Normalize
           params:
             mean: !!python/object/apply:eval ['(0.485, 0.455, 0.406)']
