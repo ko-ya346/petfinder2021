@@ -1,3 +1,4 @@
+import torch
 import torchvision.transforms as T
 import yaml
 from addict import Dict
