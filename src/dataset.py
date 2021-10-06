@@ -16,11 +16,11 @@ class PetfinderDataset(Dataset):
         return len(self._X)
 
     def __getitem__(self, idx):
-        image_path = self.X[idx]
+        image_path = self._X[idx]
         image = read_image(image_path)
         image = self._transform(image)
         if self._y is not None:
-            label = self.y[idx]
+            label = self._y[idx]
             return image, label
         return image
 
