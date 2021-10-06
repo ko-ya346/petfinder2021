@@ -62,9 +62,10 @@ def main():
             save_top_k=1,
             mode="min",
             save_last=False,
+            dirpath=os.path.join(conf.General.output_dir, conf.General.name),
         )
 
-        logger = TensorBoardLogger(conf.Model.name)
+        logger = TensorBoardLogger(os.path.join(conf.General.output_dir, conf.General.name))
         trainer = pl.Trainer(
             logger=logger,
             max_epochs=conf.General.epoch,
