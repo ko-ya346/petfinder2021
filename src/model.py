@@ -5,6 +5,8 @@ import torch.nn as nn
 from pytorch_grad_cam import GradCAMPlusPlus
 from timm import create_model
 from utils.factory import get_transform
+from utils.transform import get_default_transforms
+import torch.optim as optim
 
 
 def mixup(x: torch.Tensor, y: torch.Tensor, alpha: float = 1.0):
@@ -24,6 +26,7 @@ class Model(pl.LightningModule):
         self.cfg = cfg
         self.__build_model()
         self._criterion = eval(self.cfg.loss)()
+        self.transform = get_default_transforms()
         self.save_hyperparameters(cfg)
 
     def __build_model(self):
@@ -51,10 +54,12 @@ class Model(pl.LightningModule):
     def __share_step(self, batch, mode):
         images, labels = batch
         labels = labels.float() / 100.0
-        images = get_transform(self.cfg.Augmentation[mode])
+
+        # images = get_transform(self.cfg.Augmentation[mode])(images)
+        images = self.transform[mode](images)
         if torch.rand(1)[0] < 0.5 and mode == "train":
             mix_images, target_a, target_b, lam = mixup(images, labels, alpha=0.5)
-            logits = self.forward(mix_images).squeese(1)
+            logits = self.forward(mix_images).squeeze(1)
             loss = self._criterion(logits, target_a) * lam + self._criterion(
                 logits, target_b
             ) * (1 - lam)
@@ -63,7 +68,7 @@ class Model(pl.LightningModule):
             loss = self._criterion(logits, labels)
 
         pred = logits.sigmoid().detach().cpu() * 100.0
-        labels = labels.detach().spu() * 100.0
+        labels = labels.detach().cpu() * 100.0
         return loss, pred, labels
 
     def training_epoch_end(self, outputs):
@@ -97,10 +102,10 @@ class Model(pl.LightningModule):
 
         org_images, labels = iter(dataloader).next()
         cam.bacth_size = len(org_images)
-        images = get_transform(self.cfg.Augmentation["valid"])
+        images = self.transform[mode](images)
         images = images.to(self.device)
         logits = self.forward(images).squeeze(1)
-        pred = logits.sigmoid().detach().spu().numpy() * 100
+        pred = logits.sigmoid().detach().cpu().numpy() * 100
         labels = labels.cpu().numpy()
 
         grayscale_cam = cam(
