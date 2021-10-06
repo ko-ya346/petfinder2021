@@ -1,8 +1,10 @@
 General:
+    name: ex001
     comment: Sample config file
     seed: 20
     epoch: 10
     debug: True
+    output_dir: './output'
     trainer:
         gpus: 1
         accumulate_grad_batches: 1
