@@ -1,5 +1,9 @@
 import argparse
 
+import warnings
+import os
+import pandas as pd
+import torch
 from dataset import PetfinderDataModule
 from utils.factory import get_transform, read_yaml
 from sklearn.model_selection import StratifiedKFold
@@ -7,7 +11,11 @@ from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning import callbacks
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.callbacks.ealy_stopping import EarlyStopping
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+
+from model import Model
+
+warnings.filterwarnings('ignore')
 
 def make_parse():
     parser = argparse.ArgumentParser()
@@ -21,6 +29,9 @@ def main():
     args = make_parse().parse_args()
     conf = read_yaml(fpath=args.config)
 
+    if conf.General.debug:
+        conf.General.epoch = 3
+
     conf_aug = conf.Augmentation["train"]
     transform = get_transform(conf_aug)
 
@@ -29,7 +40,9 @@ def main():
     seed_everything(conf.General.seed)
 
     # df読み込む
-    
+    df = pd.read_csv(os.path.join(conf.dataset.train_df, 'train.csv'))
+    df['Id'] = df['Id'].apply(lambda x: os.path.join(conf.dataset.train_img_dir, x+'.jpg'))
+
 
     skf = StratifiedKFold(
         n_splits=conf.dataset.kfold, shuffle=True, random_state=conf.General.seed
@@ -41,11 +54,11 @@ def main():
         val_df = df.loc[val_idx].reset_index(drop=True)
         datamodule = PetfinderDataModule(train_df, val_df, conf)
         model = Model(conf)
-        earlystopping = EarlyStopping(monitor="val_loss")
+        earlystopping = EarlyStopping(monitor="valid_loss")
         lr_monitor = callbacks.LearningRateMonitor()
         loss_checkpoint = callbacks.ModelCheckpoint(
             filename="best_loss",
-            monitor="val_loss",
+            monitor="valid_loss",
             save_top_k=1,
             mode="min",
             save_last=False,
