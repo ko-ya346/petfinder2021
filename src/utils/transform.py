@@ -1,6 +1,7 @@
 import torch
 import torchvision.transforms as T
 
+
 def get_default_transforms():
     IMAGENET_MEAN = [0.485, 0.456, 0.406]  # RGB
     IMAGENET_STD = [0.229, 0.224, 0.225]  # RGB
@@ -16,6 +17,12 @@ def get_default_transforms():
             ]
         ),
         "valid": T.Compose(
+            [
+                T.ConvertImageDtype(torch.float),
+                T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+            ]
+        ),
+        "test": T.Compose(
             [
                 T.ConvertImageDtype(torch.float),
                 T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
