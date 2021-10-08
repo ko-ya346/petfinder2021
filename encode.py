@@ -1,6 +1,8 @@
 import base64
 import gzip
+import re
 from pathlib import Path
+
 from src.misc import get_current_commit_hash
 
 template = """
@@ -27,16 +29,26 @@ print('{commit_hash}')
 
 def encode_file(path: Path) -> str:
     compressed = gzip.compress(path.read_bytes(), compresslevel=9)
-    return base64.b64encode(compressed).decode('utf-8')
+    return base64.b64encode(compressed).decode("utf-8")
 
 
 def build_script():
-    to_encode = list(Path('src').glob('*.py'))
+    to_encode = [
+        path
+        for path in Path("./").glob("src/**/*")
+        if re.search("/*\.(py|yaml)", str(path))
+    ]
+    #    to_encode.extend(list(Path("./").glob('output/ex001/*.ckpt')))
     file_data = {str(path): encode_file(path) for path in to_encode}
-    output_path = Path('.build/script.py')
+    output_path = Path(".build/script.py")
     output_path.parent.mkdir(exist_ok=True)
-    output_path.write_text(template.replace('{file_data}', str(file_data)).replace('{commit_hash}', get_current_commit_hash()), encoding='utf8')
+    output_path.write_text(
+        template.replace("{file_data}", str(file_data)).replace(
+            "{commit_hash}", get_current_commit_hash()
+        ),
+        encoding="utf8",
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     build_script()
