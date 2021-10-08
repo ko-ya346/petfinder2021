@@ -2,11 +2,10 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-from pytorch_grad_cam import GradCAMPlusPlus
+import torch.optim as optim
 from timm import create_model
 from utils.factory import get_transform
 from utils.transform import get_default_transforms
-import torch.optim as optim
 
 
 def mixup(x: torch.Tensor, y: torch.Tensor, alpha: float = 1.0):
@@ -55,7 +54,6 @@ class Model(pl.LightningModule):
         images, labels = batch
         labels = labels.float() / 100.0
 
-        # images = get_transform(self.cfg.Augmentation[mode])(images)
         images = self.transform[mode](images)
         if torch.rand(1)[0] < 0.5 and mode == "train":
             mix_images, target_a, target_b, lam = mixup(images, labels, alpha=0.5)
@@ -92,6 +90,8 @@ class Model(pl.LightningModule):
     def check_gradcam(
         self, dataloader, target_layer, target_category, reshape_transform=None
     ):
+        from pytorch_grad_cam import GradCAMPlusPlus
+
         # CNNの判断根拠の可視化手法のひとつ
         cam = GradCAMPlusPlus(
             model=self,
