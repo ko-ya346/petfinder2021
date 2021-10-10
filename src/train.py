@@ -7,6 +7,7 @@ import torch
 from dataset import PetfinderDataModule
 from model import Model
 from sklearn.model_selection import StratifiedKFold
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 from utils.factory import get_transform, read_yaml
 
 warnings.filterwarnings("ignore")
@@ -56,8 +57,8 @@ def main():
 
         val_df = df.loc[val_idx].reset_index(drop=True)
         datamodule = PetfinderDataModule(train_df, val_df, conf)
-        model = Model(conf)
-        earlystopping = EarlyStopping(monitor="valid_loss")
+        model = Model(conf, pretrained=True)
+        earlystopping = EarlyStopping(monitor="valid_loss", patience=3)
         lr_monitor = callbacks.LearningRateMonitor()
         loss_checkpoint = callbacks.ModelCheckpoint(
             filename="best_loss",
@@ -79,6 +80,20 @@ def main():
         )
 
         trainer.fit(model, datamodule=datamodule)
+
+    # CV score
+    ex_dir = args.config.split("/")[-1].split(".")[0]
+    path = glob(f"./output/{conf.General.name}/{ex_dir}/version_*/events*")
+    idx = 1
+    event_acc = EventAccumulator(path[idx], size_guidance={"scalars": 0})
+    event_acc.Reload()
+
+    scalars = {}
+    for tag in event_acc.Tags()["scalars"]:
+        events = event_acc.Scalars(tag)
+        scalars[tag] = [event.value for event in events]
+
+    print("best_val_loss", min(scalars["valid_loss"]))
 
 
 if __name__ == "__main__":
