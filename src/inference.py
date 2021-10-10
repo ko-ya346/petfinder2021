@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import torch
 from dataset import PetfinderDataModule, PetfinderDataset
+from model import Model
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 from train import make_parse
