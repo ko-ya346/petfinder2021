@@ -20,9 +20,10 @@ def mixup(x: torch.Tensor, y: torch.Tensor, alpha: float = 1.0):
 
 
 class Model(pl.LightningModule):
-    def __init__(self, cfg):
+    def __init__(self, cfg, pretrained=False):
         super().__init__()
         self.cfg = cfg
+        self.pretrained = pretrained
         self.__build_model()
         self._criterion = eval(self.cfg.loss)()
         self.transform = get_default_transforms()
@@ -30,7 +31,7 @@ class Model(pl.LightningModule):
 
     def __build_model(self):
         self.backbone = create_model(
-            self.cfg.Model.name, pretrained=True, num_classes=0, in_chans=3
+            self.cfg.Model.name, pretrained=self.pretrained, num_classes=0, in_chans=3
         )
         num_features = self.backbone.num_features
         self.fc = nn.Sequential(
@@ -102,7 +103,7 @@ class Model(pl.LightningModule):
 
         org_images, labels = iter(dataloader).next()
         cam.bacth_size = len(org_images)
-        images = self.transform[mode](images)
+        images = self.transform["valid"](org_images)
         images = images.to(self.device)
         logits = self.forward(images).squeeze(1)
         pred = logits.sigmoid().detach().cpu().numpy() * 100
