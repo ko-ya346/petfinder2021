@@ -1,4 +1,5 @@
 import argparse
+from glob import glob
 import os
 import warnings
 
@@ -19,6 +20,8 @@ def make_parse():
     arg("--debug", action="store_true", help="debug")
     arg("--knotebook", action="store_true", help="run kaggle notebook")
     arg("--config", default=None, type=str, help="config path")
+    arg('--output', default=None, type=str, help='logger & ckpt output path')
+    arg('--seed', default=20, type=int, help='random seed')
     return parser
 
 
@@ -34,13 +37,24 @@ def main():
 
     if args.debug:
         conf.General.epoch = 3
+    if args.knotebook:
+        conf.dataset.train_df = "../input/petfinder-pawpularity-score"
+        conf.dataset.train_img_dir = "../input/petfinder-pawpularity-score/train"
+
+
+    # output pathを指定しない場合はGeneral.nameというフォルダに保存
+    # random seedを変えるだけの学習をするときに、わざわざ.yamlを用意するのが面倒なので
+    # 保存先を指定できるようにしてみた
+    # 動作未確認
+    if args.output is None:
+        args.output = conf.General.name
 
     conf_aug = conf.Augmentation["train"]
     transform = get_transform(conf_aug)
 
     # BackwardテンソルのNaNチェックを行う
     torch.autograd.set_detect_anomaly(True)
-    seed_everything(conf.General.seed)
+    seed_everything(args.seed)
 
     # df読み込む
     df = pd.read_csv(os.path.join(conf.dataset.train_df, "train.csv"))
@@ -49,7 +63,7 @@ def main():
     )
 
     skf = StratifiedKFold(
-        n_splits=conf.dataset.kfold, shuffle=True, random_state=conf.General.seed
+        n_splits=conf.dataset.kfold, shuffle=True, random_state=args.seed
     )
 
     for fold, (train_idx, val_idx) in enumerate(skf.split(df["Id"], df["Pawpularity"])):
@@ -60,17 +74,19 @@ def main():
         model = Model(conf, pretrained=True)
         earlystopping = EarlyStopping(monitor="valid_loss", patience=3)
         lr_monitor = callbacks.LearningRateMonitor()
+        dirpath=os.path.join(conf.General.output_dir, args.output) if args.knotebook==0 else '/kaggle/working'
+        print(dirpath)
         loss_checkpoint = callbacks.ModelCheckpoint(
             filename="best_loss",
             monitor="valid_loss",
             save_top_k=1,
             mode="min",
             save_last=False,
-            dirpath=os.path.join(conf.General.output_dir, conf.General.name),
+#            dirpath=os.path.join(conf.General.output_dir, args.output) if args.knotebook==0 else '/kaggle/working',
         )
 
         logger = TensorBoardLogger(
-            os.path.join(conf.General.output_dir, conf.General.name)
+            save_dir=os.path.join(conf.General.output_dir, args.output) if args.knotebook==0 else '/kaggle/working'
         )
         trainer = pl.Trainer(
             logger=logger,
@@ -81,9 +97,9 @@ def main():
 
         trainer.fit(model, datamodule=datamodule)
 
-    # CV score
+    # CV score 動作未確認
     ex_dir = args.config.split("/")[-1].split(".")[0]
-    path = glob(f"./output/{conf.General.name}/{ex_dir}/version_*/events*")
+    path = glob(f"./output/{args.output}/{ex_dir}/version_*/events*")
     idx = 1
     event_acc = EventAccumulator(path[idx], size_guidance={"scalars": 0})
     event_acc.Reload()
