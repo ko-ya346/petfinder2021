@@ -3,3 +3,4 @@ input
 output
 submission.csv
 .ipynb_checkpoints
+.build
