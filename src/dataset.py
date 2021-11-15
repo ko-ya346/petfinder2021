@@ -9,9 +9,12 @@ class PetfinderDataset(Dataset):
         self._X = df["Id"].values
         self._y = None
         self._features = None
+
+        # feature_colsが与えられた場合はメタデータも使用する
         if len(feature_cols):
             self._features = df[feature_cols].values
 
+        # 正解データが与えられた場合
         if "Pawpularity" in df.keys():
             self._y = df["Pawpularity"].values
         self._transform = T.Resize([img_height, img_width])
@@ -23,12 +26,15 @@ class PetfinderDataset(Dataset):
         image_path = self._X[idx]
         image = read_image(image_path)
         image = self._transform(image)
-        if self._features is None: 
+
+        if self._features is None:
+            # メタデータを使用しない
             if self._y is not None:
                 label = self._y[idx]
                 return image, label
             return image
-        else: 
+        else:
+            # メタデータを使用する
             features = self._features[idx]
             if self._y is not None:
                 label = self._y[idx]
@@ -56,7 +62,6 @@ class PetfinderDataModule(LightningDataModule):
             else PetfinderDataset(
                 self._val_df,
                 self.feature_cols,
-                self._conf.dataset.img_height,
                 self._conf.dataset.img_height,
                 self._conf.dataset.img_width,
             )
